@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { db, tasks, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, toPublicUser } from "@/lib/auth";
 import { canDeleteTask, canEditTask, canViewTask } from "@/lib/permissions";
 import { logTaskEvent } from "@/lib/events";
+import { resolveAssignees } from "@/lib/assignees";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ const updateTaskSchema = z.object({
   priority: z.enum(TASK_PRIORITIES).optional(),
   status: z.enum(TASK_STATUSES).optional(),
   progressPct: z.number().int().min(0).max(100).optional(),
-  assignedTo: z.string().uuid().nullable().optional(),
+  assigneeIds: z.array(z.string().uuid()).optional(),
   dueDate: z.string().nullable().optional(),
   source: z.string().nullable().optional(),
   valueAdd: z.string().nullable().optional(),
@@ -31,10 +32,9 @@ const updateTaskSchema = z.object({
 });
 
 async function loadTaskDetail(taskId: string) {
-  return db.query.tasks.findFirst({
+  const task = await db.query.tasks.findFirst({
     where: eq(tasks.id, taskId),
     with: {
-      assignee: true,
       creator: true,
       escalator: true,
       links: { orderBy: (l, { desc }) => [desc(l.createdAt)] },
@@ -50,6 +50,27 @@ async function loadTaskDetail(taskId: string) {
       },
     },
   });
+  if (!task) return task;
+
+  // Drizzle's relational query returns FULL user rows (including
+  // passwordHash, tokenVersion) for creator/escalator and every comment
+  // author / event actor — never let that reach the client.
+  const sanitized = {
+    ...task,
+    creator: task.creator ? toPublicUser(task.creator) : null,
+    escalator: task.escalator ? toPublicUser(task.escalator) : null,
+    comments: task.comments.map((c) => ({
+      ...c,
+      author: c.author ? toPublicUser(c.author) : null,
+    })),
+    events: task.events.map((e) => ({
+      ...e,
+      actor: e.actor ? toPublicUser(e.actor) : null,
+    })),
+  };
+
+  const [withAssignees] = await resolveAssignees([sanitized]);
+  return withAssignees;
 }
 
 export async function GET(
@@ -116,12 +137,16 @@ export async function PATCH(
       detail: { from: existing.progressPct, to: data.progressPct },
     });
   }
-  if (data.assignedTo !== undefined && data.assignedTo !== existing.assignedTo) {
-    updates.assignedTo = data.assignedTo;
-    events.push({
-      eventType: "assigned_changed",
-      detail: { from: existing.assignedTo, to: data.assignedTo },
-    });
+  if (data.assigneeIds !== undefined) {
+    const sortedExisting = [...(existing.assigneeIds ?? [])].sort();
+    const sortedNext = [...data.assigneeIds].sort();
+    if (JSON.stringify(sortedExisting) !== JSON.stringify(sortedNext)) {
+      updates.assigneeIds = data.assigneeIds;
+      events.push({
+        eventType: "assigned_changed",
+        detail: { from: existing.assigneeIds ?? [], to: data.assigneeIds },
+      });
+    }
   }
   if (data.priority !== undefined && data.priority !== existing.priority) {
     updates.priority = data.priority;

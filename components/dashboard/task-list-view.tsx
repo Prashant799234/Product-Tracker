@@ -83,14 +83,20 @@ export function TaskListView({
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  {task.assignee ? (
+                  {task.assignees.length > 0 ? (
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-[10px]">
-                          {task.assignee.initials}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-text-faint">{task.assignee.name}</span>
+                      <div className="flex -space-x-1.5">
+                        {task.assignees.map((assignee) => (
+                          <Avatar key={assignee.id} className="h-6 w-6 ring-2 ring-surface-1">
+                            <AvatarFallback className="text-[10px]">
+                              {assignee.initials}
+                            </AvatarFallback>
+                          </Avatar>
+                        ))}
+                      </div>
+                      <span className="text-text-faint">
+                        {task.assignees.map((a) => a.name).join(", ")}
+                      </span>
                     </div>
                   ) : (
                     <span className="text-text-dim">Unassigned</span>

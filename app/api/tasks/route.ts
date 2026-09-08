@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq, inArray } from "drizzle-orm";
 import { db, tasks, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, toPublicUser } from "@/lib/auth";
 import { getVisibilityScope } from "@/lib/permissions";
 import { logTaskEvent } from "@/lib/events";
 import { getCurrentQuarter } from "@/lib/quarters";
+import { resolveAssignees } from "@/lib/assignees";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const createTaskSchema = z.object({
   priority: z.enum(TASK_PRIORITIES).default("Medium"),
   status: z.enum(TASK_STATUSES).default("To Do"),
   progressPct: z.number().int().min(0).max(100).default(0),
-  assignedTo: z.string().uuid().optional().nullable(),
+  assigneeIds: z.array(z.string().uuid()).optional(),
   dueDate: z.string().optional().nullable(),
   source: z.string().optional().nullable(),
   valueAdd: z.string().optional().nullable(),
@@ -48,14 +49,24 @@ export async function GET(request: Request) {
   const rows = await db.query.tasks.findMany({
     where: and(...conditions),
     with: {
-      assignee: true,
       creator: true,
       escalator: true,
     },
     orderBy: (t, { desc }) => [desc(t.createdAt)],
   });
 
-  return NextResponse.json({ tasks: rows });
+  // Drizzle's relational query returns the FULL user row for `creator`/
+  // `escalator` (including passwordHash, tokenVersion) — never let that reach
+  // the client. Reduce to the same safe subset used everywhere else.
+  const sanitized = rows.map((r) => ({
+    ...r,
+    creator: r.creator ? toPublicUser(r.creator) : null,
+    escalator: r.escalator ? toPublicUser(r.escalator) : null,
+  }));
+
+  const withAssignees = await resolveAssignees(sanitized);
+
+  return NextResponse.json({ tasks: withAssignees });
 }
 
 export async function POST(request: Request) {
@@ -85,7 +96,7 @@ export async function POST(request: Request) {
       priority: data.priority,
       status: data.status,
       progressPct: data.progressPct,
-      assignedTo: data.assignedTo || null,
+      assigneeIds: data.assigneeIds ?? [],
       createdBy: user.id,
       dueDate: data.dueDate || null,
       source: data.source || null,
@@ -105,5 +116,7 @@ export async function POST(request: Request) {
     detail: { title: created.title },
   });
 
-  return NextResponse.json({ task: created }, { status: 201 });
+  const [withAssignees] = await resolveAssignees([created]);
+
+  return NextResponse.json({ task: withAssignees }, { status: 201 });
 }

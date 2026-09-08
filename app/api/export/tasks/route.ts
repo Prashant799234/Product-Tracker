@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { db, tasks } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { getVisibilityScope, taskVisibleUnderScope } from "@/lib/permissions";
+import { resolveAssignees } from "@/lib/assignees";
 import type { TaskListItem } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +55,7 @@ function taskRow(task: TaskListItem) {
     priority: task.priority,
     status: task.status,
     progressPct: task.progressPct,
-    assignee: task.assignee?.name ?? "Unassigned",
+    assignee: task.assignees.length > 0 ? task.assignees.map((a) => a.name).join(", ") : "Unassigned",
     createdBy: task.creator?.name ?? "",
     dueDate: formatDate(task.dueDate),
     source: task.source ?? "",
@@ -87,11 +88,13 @@ export async function GET() {
     scope.kind === "none"
       ? []
       : await db.query.tasks.findMany({
-          with: { assignee: true, creator: true, escalator: true },
+          with: { creator: true, escalator: true },
           orderBy: (t, { desc }) => [desc(t.createdAt)],
         });
 
-  const visibleTasks = allTasks.filter((task) => taskVisibleUnderScope(scope, task));
+  const allTasksWithAssignees = await resolveAssignees(allTasks);
+
+  const visibleTasks = allTasksWithAssignees.filter((task) => taskVisibleUnderScope(scope, task));
 
   const workbook = new Workbook();
   workbook.creator = "Product Tracker";
@@ -105,10 +108,16 @@ export async function GET() {
   const other: TaskListItem[] = [];
 
   for (const task of visibleTasks) {
-    const assigneeName = task.assignee?.name?.toLowerCase() ?? "";
-    const match = NAMED_SHEETS.find((s) => assigneeName.includes(s.matches));
-    if (match) {
-      buckets[match.sheetName].push(task);
+    const assigneeNames = task.assignees.map((a) => a.name.toLowerCase());
+    const matches = NAMED_SHEETS.filter((s) =>
+      assigneeNames.some((name) => name.includes(s.matches))
+    );
+    if (matches.length > 0) {
+      // A task can have multiple assignees, so it may land on more than one
+      // named sheet — duplication across sheets is intentional.
+      for (const match of matches) {
+        buckets[match.sheetName].push(task);
+      }
     } else {
       other.push(task);
     }

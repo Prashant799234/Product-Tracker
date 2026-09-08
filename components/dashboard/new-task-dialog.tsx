@@ -16,6 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { api, ApiError } from "@/lib/api-client";
 import { TASK_PRIORITIES, type TaskPriority } from "@/lib/enums";
 import { ALL_STATUSES } from "@/components/tasks/status-badge";
@@ -38,7 +39,7 @@ export function NewTaskDialog({
   const [description, setDescription] = React.useState("");
   const [module, setModule] = React.useState("");
   const [priority, setPriority] = React.useState<TaskPriority>("Medium");
-  const [assignedTo, setAssignedTo] = React.useState<string>("unassigned");
+  const [assigneeIds, setAssigneeIds] = React.useState<string[]>([]);
   const [dueDate, setDueDate] = React.useState("");
 
   function reset() {
@@ -46,9 +47,15 @@ export function NewTaskDialog({
     setDescription("");
     setModule("");
     setPriority("Medium");
-    setAssignedTo("unassigned");
+    setAssigneeIds([]);
     setDueDate("");
     setError(null);
+  }
+
+  function toggleAssignee(userId: string, checked: boolean) {
+    setAssigneeIds((current) =>
+      checked ? [...current, userId] : current.filter((id) => id !== userId)
+    );
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -64,7 +71,7 @@ export function NewTaskDialog({
         priority,
         status: ALL_STATUSES[0],
         progressPct: 0,
-        assignedTo: assignedTo === "unassigned" ? null : assignedTo,
+        assigneeIds,
         dueDate: dueDate || null,
       });
       onCreated(task);
@@ -130,31 +137,27 @@ export function NewTaskDialog({
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <Label>Assignee</Label>
-              <Select value={assignedTo} onValueChange={setAssignedTo}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {users.map((u) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="dueDate">Due date</Label>
-              <Input
-                id="dueDate"
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="dueDate">Due date</Label>
+            <Input
+              id="dueDate"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label>Assignees</Label>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {users.map((u) => (
+                <label key={u.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={assigneeIds.includes(u.id)}
+                    onCheckedChange={(checked) => toggleAssignee(u.id, checked === true)}
+                  />
+                  {u.name}
+                </label>
+              ))}
             </div>
           </div>
           {error && (

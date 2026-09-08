@@ -45,8 +45,11 @@ export function EscalationsPanel({
                     {task.title}
                   </Link>
                   <p className="text-xs text-text-faint">
-                    Assigned to {task.assignee?.name ?? "Unassigned"} · raised by{" "}
-                    {task.escalator?.name ?? "Unknown"}
+                    Assigned to{" "}
+                    {task.assignees.length > 0
+                      ? task.assignees.map((a) => a.name).join(", ")
+                      : "Unassigned"}{" "}
+                    · raised by {task.escalator?.name ?? "Unknown"}
                     {task.escalationNote ? ` — "${task.escalationNote}"` : ""}
                   </p>
                 </div>

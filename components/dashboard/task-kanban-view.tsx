@@ -169,10 +169,16 @@ function KanbanCard({
           </div>
           <div className="flex items-center justify-between">
             <PriorityBadge priority={task.priority} />
-            {task.assignee && (
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-[10px]">{task.assignee.initials}</AvatarFallback>
-              </Avatar>
+            {task.assignees.length > 0 ? (
+              <div className="flex -space-x-1.5">
+                {task.assignees.map((assignee) => (
+                  <Avatar key={assignee.id} className="h-6 w-6 ring-2 ring-surface-1">
+                    <AvatarFallback className="text-[10px]">{assignee.initials}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs text-text-dim">Unassigned</span>
             )}
           </div>
           <Progress value={task.progressPct} />

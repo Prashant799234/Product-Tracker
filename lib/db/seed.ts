@@ -88,7 +88,7 @@ async function seedSampleTasks(userIds: Record<string, string>) {
       priority: "Critical",
       status: "Blocked",
       progressPct: 40,
-      assignedTo: harshit,
+      assigneeIds: [harshit],
       createdBy: prashant,
       source: "Finance team request in #ops-finance",
       valueAdd: "Removes a manual monthly reconciliation step for finance.",
@@ -121,7 +121,7 @@ async function seedSampleTasks(userIds: Record<string, string>) {
     priority: "Medium",
     status: "In Progress",
     progressPct: 65,
-    assignedTo: prashant,
+    assigneeIds: [prashant],
     createdBy: ankur,
     source: "Q2 retro action item",
     valueAdd: "Cuts new-hire ramp-up time.",
@@ -136,7 +136,7 @@ async function seedSampleTasks(userIds: Record<string, string>) {
     priority: "High",
     status: "Done",
     progressPct: 100,
-    assignedTo: ankur,
+    assigneeIds: [ankur],
     createdBy: ankur,
   });
 

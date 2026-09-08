@@ -6,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { StatusBadge, ALL_STATUSES } from "@/components/tasks/status-badge";
 import { formatQuarterDisplay } from "@/lib/quarters";
@@ -45,7 +47,22 @@ export function TaskOverview({
           <Field label="Priority" value={<PriorityBadge priority={task.priority} />} />
           <Field label="Status" value={<StatusBadge status={task.status} />} />
           <Field label="Quarter" value={formatQuarterDisplay(task.quarter)} />
-          <Field label="Assignee" value={task.assignee?.name ?? "Unassigned"} />
+          <Field
+            label="Assignees"
+            value={
+              task.assignees.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {task.assignees.map((a) => (
+                    <Badge key={a.id} variant="orange">
+                      {a.name}
+                    </Badge>
+                  ))}
+                </div>
+              ) : (
+                "Unassigned"
+              )
+            }
+          />
           <Field label="Due date" value={task.dueDate ?? "—"} />
         </dl>
         <div>
@@ -124,24 +141,31 @@ export function TaskOverview({
             </SelectContent>
           </Select>
         </div>
-        <div className="flex flex-col gap-1.5">
-          <Label>Assignee</Label>
-          <Select
-            value={task.assignedTo ?? "unassigned"}
-            onValueChange={(v) => onPatch({ assignedTo: v === "unassigned" ? null : v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="unassigned">Unassigned</SelectItem>
-              {users.map((u) => (
-                <SelectItem key={u.id} value={u.id}>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label>Assignees</Label>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {users.map((u) => {
+              const checked = (task.assigneeIds ?? []).includes(u.id);
+              return (
+                <label
+                  key={u.id}
+                  className="flex items-center gap-2 text-sm text-text-secondary"
+                >
+                  <Checkbox
+                    checked={checked}
+                    onCheckedChange={(next) => {
+                      const current = task.assigneeIds ?? [];
+                      const nextIds = next
+                        ? [...current, u.id]
+                        : current.filter((id) => id !== u.id);
+                      onPatch({ assigneeIds: nextIds });
+                    }}
+                  />
                   {u.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                </label>
+              );
+            })}
+          </div>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="quarter">Quarter</Label>

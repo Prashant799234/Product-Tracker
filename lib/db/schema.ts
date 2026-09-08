@@ -8,7 +8,7 @@ import {
   uuid,
   jsonb,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Enums are represented as text columns (validated at the application layer
 // with zod) so that drizzle-kit push works against a plain Postgres/Neon
@@ -78,7 +78,17 @@ export const tasks = pgTable("tasks", {
   priority: text("severity").$type<TaskPriority>().notNull().default("Medium"),
   status: text("status").$type<TaskStatus>().notNull().default("To Do"),
   progressPct: integer("progress_pct").notNull().default(0),
+  // Deprecated: superseded by `assigneeIds` (multi-assignee). Left physically
+  // in place and unused going forward — same pattern as `severity`/`priority`
+  // above. Do not read or write this column from application code anymore.
   assignedTo: uuid("assigned_to").references((): any => users.id),
+  // Multiple assignees, as a Postgres array of user ids. No formal foreign
+  // key on array elements (Postgres doesn't support FK constraints on array
+  // elements) — a deliberate simplification.
+  assigneeIds: uuid("assignee_ids")
+    .array()
+    .notNull()
+    .default(sql`'{}'::uuid[]`),
   createdBy: uuid("created_by")
     .references((): any => users.id)
     .notNull(),

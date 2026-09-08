@@ -22,13 +22,13 @@ export type PublicUser = Pick<
 >;
 
 export type TaskListItem = Task & {
-  assignee: PublicUser | null;
+  assignees: PublicUser[];
   creator: PublicUser | null;
   escalator: PublicUser | null;
 };
 
 export type TaskDetail = Task & {
-  assignee: PublicUser | null;
+  assignees: PublicUser[];
   creator: PublicUser | null;
   escalator: PublicUser | null;
   links: TaskLink[];

@@ -16,14 +16,17 @@ export function isViewer(user: Pick<User, "role">): boolean {
 }
 
 /** Can this user edit the task's own fields (status, progress, assignment,
- * priority, quarter, due date, module, description, source/value/links)? */
+ * priority, quarter, due date, module, description, source/value/links)?
+ * Being an assignee no longer grants edit rights — only the task's creator
+ * (or an admin) can edit/delete it or raise an escalation on it. Assignment
+ * is now purely informational. */
 export function canEditTask(
   user: Pick<User, "id" | "role">,
-  task: Pick<Task, "createdBy" | "assignedTo">
+  task: Pick<Task, "createdBy">
 ): boolean {
   if (user.role === "viewer") return false;
   if (user.role === "admin") return true;
-  return task.createdBy === user.id || task.assignedTo === user.id;
+  return task.createdBy === user.id;
 }
 
 /** Anyone who can view a task (member, admin, or a viewer with a matching
@@ -32,11 +35,11 @@ export function canComment(user: Pick<User, "role">): boolean {
   return user.role === "admin" || user.role === "member" || user.role === "viewer";
 }
 
-/** Admin can delete any task; a member can delete a task they created or are
- * assigned to (same ownership rule as editing) — a viewer never can. */
+/** Admin can delete any task; a member can delete a task they created — a
+ * viewer never can. */
 export function canDeleteTask(
   user: Pick<User, "id" | "role">,
-  task: Pick<Task, "createdBy" | "assignedTo">
+  task: Pick<Task, "createdBy">
 ): boolean {
   return canEditTask(user, task);
 }
@@ -44,7 +47,7 @@ export function canDeleteTask(
 /** A user may raise an escalation on any task they're allowed to edit. */
 export function canRaiseEscalation(
   user: Pick<User, "id" | "role">,
-  task: Pick<Task, "createdBy" | "assignedTo">
+  task: Pick<Task, "createdBy">
 ): boolean {
   return canEditTask(user, task);
 }

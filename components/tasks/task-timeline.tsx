@@ -13,8 +13,12 @@ function describeEvent(event: EventWithActor): string {
       return `created this task${detail.title ? ` "${detail.title}"` : ""}`;
     case "status_changed":
       return `changed status from "${detail.from}" to "${detail.to}"`;
-    case "assigned_changed":
-      return detail.to ? `reassigned the task` : `unassigned the task`;
+    case "assigned_changed": {
+      const to = Array.isArray(detail.to) ? (detail.to as string[]) : [];
+      return to.length > 0
+        ? `changed assignees (now ${to.length} assigned)`
+        : `unassigned the task`;
+    }
     case "priority_changed":
       return `changed priority from "${detail.from}" to "${detail.to}"`;
     case "quarter_changed":
