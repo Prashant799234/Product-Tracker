@@ -6,10 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SeverityBadge } from "@/components/tasks/severity-badge";
+import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { StatusBadge, ALL_STATUSES } from "@/components/tasks/status-badge";
 import { formatQuarterDisplay } from "@/lib/quarters";
-import { TASK_SEVERITIES, type TaskSeverity, type TaskStatus } from "@/lib/enums";
+import { TASK_PRIORITIES, type TaskPriority, type TaskStatus } from "@/lib/enums";
 import type { PublicUser, TaskDetail } from "@/types";
 
 export function TaskOverview({
@@ -42,7 +42,7 @@ export function TaskOverview({
         </div>
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Field label="Module" value={task.module} />
-          <Field label="Severity" value={<SeverityBadge severity={task.severity} />} />
+          <Field label="Priority" value={<PriorityBadge priority={task.priority} />} />
           <Field label="Status" value={<StatusBadge status={task.status} />} />
           <Field label="Quarter" value={formatQuarterDisplay(task.quarter)} />
           <Field label="Assignee" value={task.assignee?.name ?? "Unassigned"} />
@@ -95,13 +95,13 @@ export function TaskOverview({
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <Label>Severity</Label>
-          <Select value={task.severity} onValueChange={(v) => onPatch({ severity: v as TaskSeverity })}>
+          <Label>Priority</Label>
+          <Select value={task.priority} onValueChange={(v) => onPatch({ priority: v as TaskPriority })}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {TASK_SEVERITIES.map((s) => (
+              {TASK_PRIORITIES.map((s) => (
                 <SelectItem key={s} value={s}>
                   {s}
                 </SelectItem>

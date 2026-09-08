@@ -15,8 +15,8 @@ function describeEvent(event: EventWithActor): string {
       return `changed status from "${detail.from}" to "${detail.to}"`;
     case "assigned_changed":
       return detail.to ? `reassigned the task` : `unassigned the task`;
-    case "severity_changed":
-      return `changed severity from "${detail.from}" to "${detail.to}"`;
+    case "priority_changed":
+      return `changed priority from "${detail.from}" to "${detail.to}"`;
     case "quarter_changed":
       return `moved the task from ${detail.from} to ${detail.to}`;
     case "progress_changed":

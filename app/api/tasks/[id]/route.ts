@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
-import { db, tasks, TASK_SEVERITIES, TASK_STATUSES } from "@/lib/db";
+import { db, tasks, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { canDeleteTask, canEditTask, canViewTask } from "@/lib/permissions";
 import { logTaskEvent } from "@/lib/events";
@@ -16,13 +16,14 @@ const updateTaskSchema = z.object({
     .regex(/^\d{4}-Q[1-4]$/)
     .optional(),
   module: z.string().min(1).optional(),
-  severity: z.enum(TASK_SEVERITIES).optional(),
+  priority: z.enum(TASK_PRIORITIES).optional(),
   status: z.enum(TASK_STATUSES).optional(),
   progressPct: z.number().int().min(0).max(100).optional(),
   assignedTo: z.string().uuid().nullable().optional(),
   dueDate: z.string().nullable().optional(),
   source: z.string().nullable().optional(),
   valueAdd: z.string().nullable().optional(),
+  impactAreas: z.array(z.string()).optional(),
   jiraUrl: z.string().nullable().optional(),
   confluenceUrl: z.string().nullable().optional(),
   figmaUrl: z.string().nullable().optional(),
@@ -122,11 +123,11 @@ export async function PATCH(
       detail: { from: existing.assignedTo, to: data.assignedTo },
     });
   }
-  if (data.severity !== undefined && data.severity !== existing.severity) {
-    updates.severity = data.severity;
+  if (data.priority !== undefined && data.priority !== existing.priority) {
+    updates.priority = data.priority;
     events.push({
-      eventType: "severity_changed",
-      detail: { from: existing.severity, to: data.severity },
+      eventType: "priority_changed",
+      detail: { from: existing.priority, to: data.priority },
     });
   }
   if (data.quarter !== undefined && data.quarter !== existing.quarter) {
@@ -144,6 +145,7 @@ export async function PATCH(
     "dueDate",
     "source",
     "valueAdd",
+    "impactAreas",
     "jiraUrl",
     "confluenceUrl",
     "figmaUrl",

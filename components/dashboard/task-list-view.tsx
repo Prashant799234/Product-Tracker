@@ -1,12 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { SeverityBadge } from "@/components/tasks/severity-badge";
+import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { cn } from "@/lib/utils";
 import { isOverdue } from "@/lib/quarters";
@@ -17,10 +16,12 @@ export function TaskListView({
   tasks,
   currentUser,
   onDelete,
+  onOpenTask,
 }: {
   tasks: TaskListItem[];
   currentUser: PublicUser;
   onDelete: (taskId: string) => void;
+  onOpenTask: (taskId: string) => void;
 }) {
   if (tasks.length === 0) {
     return (
@@ -37,7 +38,7 @@ export function TaskListView({
           <tr className="border-b border-text-muted/10 bg-surface-1 text-xs uppercase tracking-wide text-text-dim">
             <th className="px-4 py-3 font-medium">Task</th>
             <th className="px-4 py-3 font-medium">Module</th>
-            <th className="px-4 py-3 font-medium">Severity</th>
+            <th className="px-4 py-3 font-medium">Priority</th>
             <th className="px-4 py-3 font-medium">Status</th>
             <th className="px-4 py-3 font-medium">Progress</th>
             <th className="px-4 py-3 font-medium">Assignee</th>
@@ -55,12 +56,13 @@ export function TaskListView({
                 className="border-b border-text-muted/5 bg-surface-1 transition-colors last:border-0 hover:bg-surface-2"
               >
                 <td className="px-4 py-3">
-                  <Link
-                    href={`/tasks/${task.id}`}
-                    className="font-medium text-text-primary hover:text-brand-orange hover:underline"
+                  <button
+                    type="button"
+                    onClick={() => onOpenTask(task.id)}
+                    className="text-left font-medium text-text-primary hover:text-brand-orange hover:underline"
                   >
                     {task.title}
-                  </Link>
+                  </button>
                   {task.isEscalated && !task.escalationResolved && (
                     <span className="ml-2 rounded-full bg-critical/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-critical">
                       Escalated
@@ -69,7 +71,7 @@ export function TaskListView({
                 </td>
                 <td className="px-4 py-3 text-text-faint">{task.module}</td>
                 <td className="px-4 py-3">
-                  <SeverityBadge severity={task.severity} />
+                  <PriorityBadge priority={task.priority} />
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={task.status} />

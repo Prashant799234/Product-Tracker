@@ -1,18 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { List, LayoutGrid } from "lucide-react";
+import { List, LayoutGrid, Download } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api-client";
 import { getCurrentQuarter } from "@/lib/quarters";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { QuarterSelector } from "@/components/dashboard/quarter-selector";
 import { StatTiles } from "@/components/dashboard/stat-tiles";
 import { EscalationsPanel } from "@/components/dashboard/escalations-panel";
 import { TaskListView } from "@/components/dashboard/task-list-view";
 import { TaskKanbanView } from "@/components/dashboard/task-kanban-view";
 import { NewTaskDialog } from "@/components/dashboard/new-task-dialog";
+import { TaskDetailSheet } from "@/components/tasks/task-detail-sheet";
 import type { PublicUser, TaskListItem } from "@/types";
+import type { TaskStatus } from "@/lib/enums";
 
 type ViewMode = "list" | "kanban";
 
@@ -23,6 +26,7 @@ export function DashboardClient() {
   const [tasks, setTasks] = React.useState<TaskListItem[]>([]);
   const [users, setUsers] = React.useState<PublicUser[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [openTaskId, setOpenTaskId] = React.useState<string | null>(null);
 
   const loadTasks = React.useCallback(async () => {
     setLoading(true);
@@ -59,6 +63,23 @@ export function DashboardClient() {
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
   }
 
+  async function handleStatusChange(taskId: string, status: TaskStatus) {
+    const previous = tasks;
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, status } : t)));
+    try {
+      await api.patch(`/api/tasks/${taskId}`, { status });
+    } catch {
+      setTasks(previous);
+    }
+  }
+
+  function handleSheetOpenChange(open: boolean) {
+    if (!open) {
+      setOpenTaskId(null);
+      loadTasks();
+    }
+  }
+
   if (!user) return null;
 
   return (
@@ -71,11 +92,22 @@ export function DashboardClient() {
         <div className="flex items-center gap-3">
           <QuarterSelector quarter={quarter} onChange={setQuarter} />
           {user.role !== "viewer" && (
-            <NewTaskDialog
-              quarter={quarter}
-              users={users}
-              onCreated={(task) => setTasks((prev) => [task, ...prev])}
-            />
+            <>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  window.location.href = "/api/export/tasks";
+                }}
+              >
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+              <NewTaskDialog
+                quarter={quarter}
+                users={users}
+                onCreated={(task) => setTasks((prev) => [task, ...prev])}
+              />
+            </>
           )}
         </div>
       </div>
@@ -103,10 +135,28 @@ export function DashboardClient() {
       </div>
 
       {view === "kanban" ? (
-        <TaskKanbanView tasks={tasks} currentUser={user} onDelete={handleDelete} />
+        <TaskKanbanView
+          tasks={tasks}
+          currentUser={user}
+          onDelete={handleDelete}
+          onOpenTask={setOpenTaskId}
+          onStatusChange={handleStatusChange}
+        />
       ) : (
-        <TaskListView tasks={tasks} currentUser={user} onDelete={handleDelete} />
+        <TaskListView
+          tasks={tasks}
+          currentUser={user}
+          onDelete={handleDelete}
+          onOpenTask={setOpenTaskId}
+        />
       )}
+
+      <TaskDetailSheet
+        taskId={openTaskId}
+        open={!!openTaskId}
+        onOpenChange={handleSheetOpenChange}
+        onChanged={loadTasks}
+      />
     </div>
   );
 }

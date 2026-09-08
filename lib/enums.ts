@@ -7,8 +7,20 @@
 export const USER_ROLES = ["admin", "member", "viewer"] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 
-export const TASK_SEVERITIES = ["Critical", "High", "Medium", "Low"] as const;
-export type TaskSeverity = (typeof TASK_SEVERITIES)[number];
+export const TASK_PRIORITIES = ["Critical", "High", "Medium", "Low"] as const;
+export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+
+export const IMPACT_AREAS = [
+  "Experience",
+  "Revenue",
+  "Cost",
+  "Compliance",
+  "Reliability",
+  "Performance",
+  "Security",
+  "Adoption",
+] as const;
+export type ImpactArea = (typeof IMPACT_AREAS)[number];
 
 export const TASK_STATUSES = [
   "To Do",
@@ -26,7 +38,7 @@ export const TASK_EVENT_TYPES = [
   "created",
   "status_changed",
   "assigned_changed",
-  "severity_changed",
+  "priority_changed",
   "quarter_changed",
   "progress_changed",
   "escalated",

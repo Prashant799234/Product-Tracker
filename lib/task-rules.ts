@@ -16,7 +16,7 @@ export function isViewer(user: Pick<User, "role">): boolean {
 }
 
 /** Can this user edit the task's own fields (status, progress, assignment,
- * severity, quarter, due date, module, description, source/value/links)? */
+ * priority, quarter, due date, module, description, source/value/links)? */
 export function canEditTask(
   user: Pick<User, "id" | "role">,
   task: Pick<Task, "createdBy" | "assignedTo">

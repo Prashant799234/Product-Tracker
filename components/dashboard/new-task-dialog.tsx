@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, ApiError } from "@/lib/api-client";
-import { TASK_SEVERITIES, type TaskSeverity } from "@/lib/enums";
+import { TASK_PRIORITIES, type TaskPriority } from "@/lib/enums";
 import { ALL_STATUSES } from "@/components/tasks/status-badge";
 import type { PublicUser, TaskListItem } from "@/types";
 
@@ -37,7 +37,7 @@ export function NewTaskDialog({
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [module, setModule] = React.useState("");
-  const [severity, setSeverity] = React.useState<TaskSeverity>("Medium");
+  const [priority, setPriority] = React.useState<TaskPriority>("Medium");
   const [assignedTo, setAssignedTo] = React.useState<string>("unassigned");
   const [dueDate, setDueDate] = React.useState("");
 
@@ -45,7 +45,7 @@ export function NewTaskDialog({
     setTitle("");
     setDescription("");
     setModule("");
-    setSeverity("Medium");
+    setPriority("Medium");
     setAssignedTo("unassigned");
     setDueDate("");
     setError(null);
@@ -61,7 +61,7 @@ export function NewTaskDialog({
         description: description || null,
         quarter,
         module,
-        severity,
+        priority,
         status: ALL_STATUSES[0],
         progressPct: 0,
         assignedTo: assignedTo === "unassigned" ? null : assignedTo,
@@ -115,13 +115,13 @@ export function NewTaskDialog({
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Severity</Label>
-              <Select value={severity} onValueChange={(v) => setSeverity(v as TaskSeverity)}>
+              <Label>Priority</Label>
+              <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {TASK_SEVERITIES.map((s) => (
+                  {TASK_PRIORITIES.map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
                     </SelectItem>

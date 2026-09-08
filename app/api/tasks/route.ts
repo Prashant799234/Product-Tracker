@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { and, eq, inArray } from "drizzle-orm";
-import { db, tasks, TASK_SEVERITIES, TASK_STATUSES } from "@/lib/db";
+import { db, tasks, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { getVisibilityScope } from "@/lib/permissions";
 import { logTaskEvent } from "@/lib/events";
@@ -14,13 +14,14 @@ const createTaskSchema = z.object({
   description: z.string().optional().nullable(),
   quarter: z.string().regex(/^\d{4}-Q[1-4]$/),
   module: z.string().min(1),
-  severity: z.enum(TASK_SEVERITIES).default("Medium"),
+  priority: z.enum(TASK_PRIORITIES).default("Medium"),
   status: z.enum(TASK_STATUSES).default("To Do"),
   progressPct: z.number().int().min(0).max(100).default(0),
   assignedTo: z.string().uuid().optional().nullable(),
   dueDate: z.string().optional().nullable(),
   source: z.string().optional().nullable(),
   valueAdd: z.string().optional().nullable(),
+  impactAreas: z.array(z.string()).optional(),
   jiraUrl: z.string().url().optional().nullable().or(z.literal("")),
   confluenceUrl: z.string().url().optional().nullable().or(z.literal("")),
   figmaUrl: z.string().url().optional().nullable().or(z.literal("")),
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
       description: data.description || null,
       quarter: data.quarter,
       module: data.module,
-      severity: data.severity,
+      priority: data.priority,
       status: data.status,
       progressPct: data.progressPct,
       assignedTo: data.assignedTo || null,
@@ -89,6 +90,7 @@ export async function POST(request: Request) {
       dueDate: data.dueDate || null,
       source: data.source || null,
       valueAdd: data.valueAdd || null,
+      impactAreas: data.impactAreas ?? [],
       jiraUrl: data.jiraUrl || null,
       confluenceUrl: data.confluenceUrl || null,
       figmaUrl: data.figmaUrl || null,

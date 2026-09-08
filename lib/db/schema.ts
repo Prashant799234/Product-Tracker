@@ -17,24 +17,26 @@ import { relations } from "drizzle-orm";
 // components can import them without pulling in the database client.
 export {
   USER_ROLES,
-  TASK_SEVERITIES,
+  TASK_PRIORITIES,
   TASK_STATUSES,
   SHARE_SCOPES,
   TASK_EVENT_TYPES,
+  IMPACT_AREAS,
   type UserRole,
-  type TaskSeverity,
+  type TaskPriority,
   type TaskStatus,
   type ShareScope,
   type TaskEventType,
+  type ImpactArea,
 } from "../enums";
 import {
   USER_ROLES,
-  TASK_SEVERITIES,
+  TASK_PRIORITIES,
   TASK_STATUSES,
   SHARE_SCOPES,
   TASK_EVENT_TYPES,
   type UserRole,
-  type TaskSeverity,
+  type TaskPriority,
   type TaskStatus,
   type ShareScope,
   type TaskEventType,
@@ -69,7 +71,11 @@ export const tasks = pgTable("tasks", {
   description: text("description"),
   quarter: text("quarter").notNull(),
   module: text("module").notNull(),
-  severity: text("severity").$type<TaskSeverity>().notNull().default("Medium"),
+  // NOTE: the underlying Postgres column is still physically named
+  // "severity" — only the Drizzle/TypeScript field key has been renamed to
+  // `priority`. A manual `ALTER TABLE tasks RENAME COLUMN severity TO
+  // priority` can be run later, separately, with care around existing data.
+  priority: text("severity").$type<TaskPriority>().notNull().default("Medium"),
   status: text("status").$type<TaskStatus>().notNull().default("To Do"),
   progressPct: integer("progress_pct").notNull().default(0),
   assignedTo: uuid("assigned_to").references((): any => users.id),
@@ -79,6 +85,9 @@ export const tasks = pgTable("tasks", {
   dueDate: date("due_date"),
   source: text("source"),
   valueAdd: text("value_add"),
+  // Fixed taxonomy of what this task impacts (see IMPACT_AREAS in
+  // lib/enums.ts). Purely additive column — nullable, defaults to empty.
+  impactAreas: text("impact_areas").array().default([]),
   jiraUrl: text("jira_url"),
   confluenceUrl: text("confluence_url"),
   figmaUrl: text("figma_url"),

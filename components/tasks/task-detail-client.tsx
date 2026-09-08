@@ -17,7 +17,28 @@ import { TaskTimeline } from "@/components/tasks/task-timeline";
 import { EscalationSection } from "@/components/tasks/escalation-section";
 import type { PublicUser, TaskDetail, TaskPermissions } from "@/types";
 
-export function TaskDetailClient({ taskId }: { taskId: string }) {
+/**
+ * The actual task-detail content — reused both by the standalone `/tasks/[id]`
+ * page (via `TaskDetailClient` below) and by the dashboard's slide-over
+ * (`components/tasks/task-detail-sheet.tsx`).
+ *
+ * `onChanged` is an optional hook fired after every successful mutation
+ * (patch/delete/comment/etc.) so a parent list view can refresh itself; the
+ * component always re-fetches and re-renders its own state regardless.
+ */
+export function TaskDetailContent({
+  taskId,
+  onDeleted,
+  onChanged,
+  backHref,
+  backLabel = "Back to dashboard",
+}: {
+  taskId: string;
+  onDeleted?: () => void;
+  onChanged?: () => void;
+  backHref?: string;
+  backLabel?: string;
+}) {
   const { user } = useAuth();
   const router = useRouter();
   const [task, setTask] = React.useState<TaskDetail | null>(null);
@@ -41,6 +62,8 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
   }, [taskId]);
 
   React.useEffect(() => {
+    setLoading(true);
+    setNotFound(false);
     load();
   }, [load]);
 
@@ -56,12 +79,18 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
   async function handlePatch(patch: Record<string, unknown>) {
     const data = await api.patch<{ task: TaskDetail }>(`/api/tasks/${taskId}`, patch);
     setTask(data.task);
+    onChanged?.();
   }
 
   async function handleDelete() {
     if (!confirm("Delete this task permanently? This cannot be undone.")) return;
     await api.del(`/api/tasks/${taskId}`);
-    router.replace("/");
+    onChanged?.();
+    if (onDeleted) {
+      onDeleted();
+    } else {
+      router.replace("/");
+    }
   }
 
   if (loading) return <div className="py-10 text-center text-sm text-text-faint">Loading...</div>;
@@ -69,8 +98,8 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
     return (
       <div className="flex flex-col items-center gap-3 py-16">
         <p className="text-sm text-text-faint">This task doesn&apos;t exist or you don&apos;t have access to it.</p>
-        <Link href="/" className="text-sm text-brand-blue hover:underline">
-          Back to dashboard
+        <Link href={backHref ?? "/"} className="text-sm text-brand-blue hover:underline">
+          {backLabel}
         </Link>
       </div>
     );
@@ -82,10 +111,21 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-1.5 text-sm text-text-faint hover:text-text-primary">
-          <ArrowLeft className="h-4 w-4" />
-          Back to dashboard
-        </Link>
+        {backHref !== undefined ? (
+          backHref ? (
+            <Link href={backHref} className="flex items-center gap-1.5 text-sm text-text-faint hover:text-text-primary">
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel}
+            </Link>
+          ) : (
+            <span />
+          )
+        ) : (
+          <Link href="/" className="flex items-center gap-1.5 text-sm text-text-faint hover:text-text-primary">
+            <ArrowLeft className="h-4 w-4" />
+            {backLabel}
+          </Link>
+        )}
         {permissions.canDelete && (
           <Button variant="ghost" size="sm" className="text-critical hover:bg-critical/10" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" />
@@ -104,6 +144,7 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
             note,
           });
           setTask((prev) => (prev ? { ...prev, ...data.task } : prev));
+          onChanged?.();
           load();
         }}
         onResolve={async () => {
@@ -111,6 +152,7 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
             action: "resolve",
           });
           setTask((prev) => (prev ? { ...prev, ...data.task } : prev));
+          onChanged?.();
           load();
         }}
       />
@@ -127,10 +169,12 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
           onPatch={handlePatch}
           onAddLink={async (label, url) => {
             await api.post(`/api/tasks/${taskId}/links`, { label, url });
+            onChanged?.();
             load();
           }}
           onDeleteLink={async (linkId) => {
             await api.del(`/api/tasks/${taskId}/links`, { linkId });
+            onChanged?.();
             load();
           }}
         />
@@ -139,10 +183,12 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
           canEdit={canEdit}
           onAdd={async (title, url) => {
             await api.post(`/api/tasks/${taskId}/documents`, { title, url });
+            onChanged?.();
             load();
           }}
           onDelete={async (documentId) => {
             await api.del(`/api/tasks/${taskId}/documents`, { documentId });
+            onChanged?.();
             load();
           }}
         />
@@ -151,14 +197,17 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
           canEdit={canEdit}
           onAdd={async (text) => {
             await api.post(`/api/tasks/${taskId}/todos`, { text });
+            onChanged?.();
             load();
           }}
           onToggle={async (todoId, isDone) => {
             await api.patch(`/api/tasks/${taskId}/todos`, { todoId, isDone });
+            onChanged?.();
             load();
           }}
           onDelete={async (todoId) => {
             await api.del(`/api/tasks/${taskId}/todos`, { todoId });
+            onChanged?.();
             load();
           }}
         />
@@ -169,6 +218,7 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
           comments={task.comments}
           onAdd={async (text) => {
             await api.post(`/api/tasks/${taskId}/comments`, { text });
+            onChanged?.();
             load();
           }}
         />
@@ -177,4 +227,11 @@ export function TaskDetailClient({ taskId }: { taskId: string }) {
       <TaskTimeline events={task.events} />
     </div>
   );
+}
+
+/** Thin wrapper used by the standalone `/tasks/[id]` page — keeps that route's
+ * invocation unchanged while the actual content lives in `TaskDetailContent`
+ * so it can also be rendered inside the dashboard's slide-over sheet. */
+export function TaskDetailClient({ taskId }: { taskId: string }) {
+  return <TaskDetailContent taskId={taskId} />;
 }
