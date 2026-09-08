@@ -54,6 +54,11 @@ export function DashboardClient() {
     loadTasks();
   }
 
+  async function handleDelete(taskId: string) {
+    await api.del(`/api/tasks/${taskId}`);
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  }
+
   if (!user) return null;
 
   return (
@@ -97,7 +102,11 @@ export function DashboardClient() {
         </Tabs>
       </div>
 
-      {view === "kanban" ? <TaskKanbanView tasks={tasks} /> : <TaskListView tasks={tasks} />}
+      {view === "kanban" ? (
+        <TaskKanbanView tasks={tasks} currentUser={user} onDelete={handleDelete} />
+      ) : (
+        <TaskListView tasks={tasks} currentUser={user} onDelete={handleDelete} />
+      )}
     </div>
   );
 }

@@ -69,7 +69,7 @@ export async function GET(
     task,
     permissions: {
       canEdit: canEditTask(user, task),
-      canDelete: canDeleteTask(user),
+      canDelete: canDeleteTask(user, task),
     },
   });
 }
@@ -190,12 +190,13 @@ export async function DELETE(
 ) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!canDeleteTask(user)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
 
   const [existing] = await db.select().from(tasks).where(eq(tasks.id, params.id)).limit(1);
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  if (!canDeleteTask(user, existing)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   await db.delete(tasks).where(eq(tasks.id, params.id));
   return NextResponse.json({ ok: true });

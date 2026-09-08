@@ -1,55 +1,17 @@
 import { eq } from "drizzle-orm";
 import { db, shares, users, type Task, type User } from "./db";
 
-/** Members/admins can create tasks and comment on anything; viewers can only
- * comment. Both can be granted `canManageUsers`. */
-export function isAdmin(user: Pick<User, "role">): boolean {
-  return user.role === "admin";
-}
-
-export function isViewer(user: Pick<User, "role">): boolean {
-  return user.role === "viewer";
-}
-
-/** Can this user edit the task's own fields (status, progress, assignment,
- * severity, quarter, due date, module, description, source/value/links)? */
-export function canEditTask(
-  user: Pick<User, "id" | "role">,
-  task: Pick<Task, "createdBy" | "assignedTo">
-): boolean {
-  if (user.role === "viewer") return false;
-  if (user.role === "admin") return true;
-  return task.createdBy === user.id || task.assignedTo === user.id;
-}
-
-/** Anyone who can view a task (member, admin, or a viewer with a matching
- * share) can add comments/notes — ownership is irrelevant for commenting. */
-export function canComment(user: Pick<User, "role">): boolean {
-  return user.role === "admin" || user.role === "member" || user.role === "viewer";
-}
-
-/** Only admin can hard-delete a task. */
-export function canDeleteTask(user: Pick<User, "role">): boolean {
-  return user.role === "admin";
-}
-
-/** A user may raise an escalation on any task they're allowed to edit. */
-export function canRaiseEscalation(
-  user: Pick<User, "id" | "role">,
-  task: Pick<Task, "createdBy" | "assignedTo">
-): boolean {
-  return canEditTask(user, task);
-}
-
-/** Admin can resolve any escalation; a member/viewer can resolve only the
- * one they raised themselves. */
-export function canResolveEscalation(
-  user: Pick<User, "id" | "role">,
-  task: Pick<Task, "escalatedBy">
-): boolean {
-  if (user.role === "admin") return true;
-  return !!task.escalatedBy && task.escalatedBy === user.id;
-}
+// Pure, DB-free rules (also used by client components) live in task-rules.ts
+// and are re-exported here so existing server-side imports keep working.
+export {
+  isAdmin,
+  isViewer,
+  canEditTask,
+  canComment,
+  canDeleteTask,
+  canRaiseEscalation,
+  canResolveEscalation,
+} from "./task-rules";
 
 /** Whether `actor` (who already has canManageUsers) may change the role or
  * active-status of `target`. A plain viewer can be managed by any

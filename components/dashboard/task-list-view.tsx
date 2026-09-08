@@ -2,15 +2,26 @@
 
 import Link from "next/link";
 import { format } from "date-fns";
+import { Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { SeverityBadge } from "@/components/tasks/severity-badge";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { cn } from "@/lib/utils";
 import { isOverdue } from "@/lib/quarters";
-import type { TaskListItem } from "@/types";
+import { canDeleteTask } from "@/lib/task-rules";
+import type { PublicUser, TaskListItem } from "@/types";
 
-export function TaskListView({ tasks }: { tasks: TaskListItem[] }) {
+export function TaskListView({
+  tasks,
+  currentUser,
+  onDelete,
+}: {
+  tasks: TaskListItem[];
+  currentUser: PublicUser;
+  onDelete: (taskId: string) => void;
+}) {
   if (tasks.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-text-muted/20 p-10 text-center text-sm text-text-faint">
@@ -31,11 +42,13 @@ export function TaskListView({ tasks }: { tasks: TaskListItem[] }) {
             <th className="px-4 py-3 font-medium">Progress</th>
             <th className="px-4 py-3 font-medium">Assignee</th>
             <th className="px-4 py-3 font-medium">Due</th>
+            <th className="px-4 py-3 font-medium" />
           </tr>
         </thead>
         <tbody>
           {tasks.map((task) => {
             const overdue = isOverdue(task.dueDate, task.status);
+            const deletable = canDeleteTask(currentUser, task);
             return (
               <tr
                 key={task.id}
@@ -83,6 +96,22 @@ export function TaskListView({ tasks }: { tasks: TaskListItem[] }) {
                 </td>
                 <td className={cn("px-4 py-3", overdue ? "font-medium text-critical" : "text-text-faint")}>
                   {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "—"}
+                </td>
+                <td className="px-4 py-3 text-right">
+                  {deletable && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-critical hover:bg-critical/10"
+                      onClick={() => {
+                        if (confirm(`Delete "${task.title}" permanently? This cannot be undone.`)) {
+                          onDelete(task.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </td>
               </tr>
             );
