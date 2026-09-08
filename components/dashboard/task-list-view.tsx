@@ -1,11 +1,13 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { StatusBadge } from "@/components/tasks/status-badge";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,8 @@ export function TaskListView({
   currentUser: PublicUser;
   onDelete: (taskId: string) => void;
 }) {
+  const [pendingDelete, setPendingDelete] = React.useState<TaskListItem | null>(null);
+
   if (tasks.length === 0) {
     return (
       <div className="rounded-lg border border-dashed border-text-muted/20 p-10 text-center text-sm text-text-faint">
@@ -109,11 +113,7 @@ export function TaskListView({
                       variant="ghost"
                       size="sm"
                       className="text-critical hover:bg-critical/10"
-                      onClick={() => {
-                        if (confirm(`Delete "${task.title}" permanently? This cannot be undone.`)) {
-                          onDelete(task.id);
-                        }
-                      }}
+                      onClick={() => setPendingDelete(task)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -124,6 +124,19 @@ export function TaskListView({
           })}
         </tbody>
       </table>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => !open && setPendingDelete(null)}
+        title="Delete this task?"
+        description={
+          pendingDelete
+            ? `"${pendingDelete.title}" will be permanently deleted. This cannot be undone.`
+            : undefined
+        }
+        confirmLabel="Delete task"
+        onConfirm={() => pendingDelete && onDelete(pendingDelete.id)}
+      />
     </div>
   );
 }

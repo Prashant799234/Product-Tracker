@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { ALL_STATUSES } from "@/components/tasks/status-badge";
 import { canDeleteTask } from "@/lib/task-rules";
@@ -118,6 +119,7 @@ function KanbanCard({
   onDelete: (taskId: string) => void;
 }) {
   const router = useRouter();
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
@@ -154,9 +156,7 @@ function KanbanCard({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (confirm(`Delete "${task.title}" permanently? This cannot be undone.`)) {
-                      onDelete(task.id);
-                    }
+                    setConfirmOpen(true);
                   }}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -181,6 +181,15 @@ function KanbanCard({
           <Progress value={task.progressPct} />
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Delete this task?"
+        description={`"${task.title}" will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete task"
+        onConfirm={() => onDelete(task.id)}
+      />
     </div>
   );
 }

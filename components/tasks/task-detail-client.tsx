@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TaskOverview } from "@/components/tasks/task-overview";
 import { OriginAndValue } from "@/components/tasks/origin-value";
 import { TaskLinks } from "@/components/tasks/task-links";
@@ -18,9 +19,8 @@ import { EscalationSection } from "@/components/tasks/escalation-section";
 import type { PublicUser, TaskDetail, TaskPermissions } from "@/types";
 
 /**
- * The actual task-detail content — reused both by the standalone `/tasks/[id]`
- * page (via `TaskDetailClient` below) and by the dashboard's slide-over
- * (`components/tasks/task-detail-sheet.tsx`).
+ * The actual task-detail content, rendered by the standalone `/tasks/[id]`
+ * page via `TaskDetailClient` below.
  *
  * `onChanged` is an optional hook fired after every successful mutation
  * (patch/delete/comment/etc.) so a parent list view can refresh itself; the
@@ -46,6 +46,7 @@ export function TaskDetailContent({
   const [users, setUsers] = React.useState<PublicUser[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [notFound, setNotFound] = React.useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
     try {
@@ -83,7 +84,6 @@ export function TaskDetailContent({
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this task permanently? This cannot be undone.")) return;
     await api.del(`/api/tasks/${taskId}`);
     onChanged?.();
     if (onDeleted) {
@@ -127,7 +127,12 @@ export function TaskDetailContent({
           </Link>
         )}
         {permissions.canDelete && (
-          <Button variant="ghost" size="sm" className="text-critical hover:bg-critical/10" onClick={handleDelete}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-critical hover:bg-critical/10"
+            onClick={() => setDeleteConfirmOpen(true)}
+          >
             <Trash2 className="h-4 w-4" />
             Delete task
           </Button>
@@ -225,13 +230,21 @@ export function TaskDetailContent({
       )}
 
       <TaskTimeline events={task.events} />
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Delete this task?"
+        description={`"${task.title}" will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete task"
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }
 
 /** Thin wrapper used by the standalone `/tasks/[id]` page — keeps that route's
- * invocation unchanged while the actual content lives in `TaskDetailContent`
- * so it can also be rendered inside the dashboard's slide-over sheet. */
+ * invocation unchanged while the actual content lives in `TaskDetailContent`. */
 export function TaskDetailClient({ taskId }: { taskId: string }) {
   return <TaskDetailContent taskId={taskId} />;
 }
