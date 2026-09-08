@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   PointerSensor,
@@ -26,13 +27,11 @@ export function TaskKanbanView({
   tasks,
   currentUser,
   onDelete,
-  onOpenTask,
   onStatusChange,
 }: {
   tasks: TaskListItem[];
   currentUser: PublicUser;
   onDelete: (taskId: string) => void;
-  onOpenTask: (taskId: string) => void;
   onStatusChange: (taskId: string, status: TaskStatus) => void;
 }) {
   const sensors = useSensors(
@@ -64,7 +63,6 @@ export function TaskKanbanView({
                     key={task.id}
                     task={task}
                     deletable={deletable}
-                    onOpenTask={onOpenTask}
                     onDelete={onDelete}
                   />
                 );
@@ -113,14 +111,13 @@ function KanbanColumn({
 function KanbanCard({
   task,
   deletable,
-  onOpenTask,
   onDelete,
 }: {
   task: TaskListItem;
   deletable: boolean;
-  onOpenTask: (taskId: string) => void;
   onDelete: (taskId: string) => void;
 }) {
+  const router = useRouter();
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
@@ -139,7 +136,7 @@ function KanbanCard({
           "cursor-pointer touch-none transition-colors hover:bg-surface-2",
           isDragging && "opacity-50 shadow-lg"
         )}
-        onClick={() => onOpenTask(task.id)}
+        onClick={() => router.push(`/tasks/${task.id}`)}
       >
         <CardContent className="flex flex-col gap-2 p-3">
           <div className="flex items-start justify-between gap-2">
