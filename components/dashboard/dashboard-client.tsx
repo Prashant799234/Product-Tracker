@@ -20,7 +20,9 @@ import {
   type TaskFilterState,
 } from "@/components/dashboard/task-filters";
 import type { PublicUser, TaskListItem } from "@/types";
-import type { TaskStatus } from "@/lib/enums";
+import { TASK_PRIORITIES, type TaskStatus } from "@/lib/enums";
+
+const PRIORITY_RANK = Object.fromEntries(TASK_PRIORITIES.map((p, i) => [p, i]));
 
 type ViewMode = "list" | "kanban";
 
@@ -50,7 +52,12 @@ export function DashboardClient() {
     setFilters(EMPTY_TASK_FILTERS);
   }, [loadTasks]);
 
-  const filteredTasks = React.useMemo(() => applyTaskFilters(tasks, filters), [tasks, filters]);
+  const filteredTasks = React.useMemo(() => {
+    const filtered = applyTaskFilters(tasks, filters);
+    // Sort by priority (Critical -> Low); Array.prototype.sort is stable, so
+    // tasks of equal priority keep the API's original order (newest first).
+    return [...filtered].sort((a, b) => PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority]);
+  }, [tasks, filters]);
 
   React.useEffect(() => {
     if (user && user.role !== "viewer") {
