@@ -8,10 +8,16 @@ if (existsSync(".env.local")) {
   loadEnv();
 }
 
+// Accept either naming: Vercel's older native Postgres integration injects
+// POSTGRES_URL, the current Neon marketplace integration injects DATABASE_URL.
+if (!process.env.POSTGRES_URL && process.env.DATABASE_URL) {
+  process.env.POSTGRES_URL = process.env.DATABASE_URL;
+}
+
 if (!process.env.POSTGRES_URL) {
   // eslint-disable-next-line no-console
   console.warn(
-    "POSTGRES_URL is not set. Set it in .env.local before running drizzle-kit push."
+    "POSTGRES_URL/DATABASE_URL is not set. Set one in .env.local before running drizzle-kit push."
   );
 }
 
