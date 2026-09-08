@@ -117,8 +117,6 @@ export function DashboardClient() {
 
       <StatTiles tasks={tasks} />
 
-      <TaskFilters tasks={tasks} users={users} value={filters} onChange={setFilters} />
-
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-text-faint">
           {quarter} tasks{" "}
@@ -141,6 +139,8 @@ export function DashboardClient() {
           </TabsList>
         </Tabs>
       </div>
+
+      <TaskFilters tasks={tasks} users={users} value={filters} onChange={setFilters} />
 
       {view === "kanban" ? (
         <TaskKanbanView

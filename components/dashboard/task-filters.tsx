@@ -1,9 +1,17 @@
 "use client";
 
 import * as React from "react";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { TASK_PRIORITIES, type TaskPriority } from "@/lib/enums";
 import type { PublicUser, TaskListItem } from "@/types";
 
@@ -36,28 +44,47 @@ export function applyTaskFilters(tasks: TaskListItem[], filters: TaskFilterState
   });
 }
 
-function Chip({
-  active,
-  onClick,
-  children,
+function MultiSelectDropdown<T extends string>({
+  label,
+  options,
+  optionLabel,
+  selected,
+  onChange,
 }: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
+  label: string;
+  options: T[];
+  optionLabel: (option: T) => string;
+  selected: T[];
+  onChange: (next: T[]) => void;
 }) {
+  function toggle(option: T) {
+    onChange(selected.includes(option) ? selected.filter((o) => o !== option) : [...selected, option]);
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-2.5 py-1 text-xs font-medium transition-colors",
-        active
-          ? "border-transparent bg-brand-orange/15 text-brand-orange-tint"
-          : "border-text-muted/20 text-text-faint hover:bg-surface-2"
-      )}
-    >
-      {children}
-    </button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm">
+          {label}
+          {selected.length > 0 && ` (${selected.length})`}
+          <ChevronDown className="h-3.5 w-3.5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        <DropdownMenuLabel>{label}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {options.map((option) => (
+          <DropdownMenuCheckboxItem
+            key={option}
+            checked={selected.includes(option)}
+            onSelect={(e) => e.preventDefault()}
+            onCheckedChange={() => toggle(option)}
+          >
+            {optionLabel(option)}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -77,17 +104,6 @@ export function TaskFilters({
     [tasks]
   );
 
-  function toggle<K extends "modules" | "priorities" | "assigneeIds">(
-    key: K,
-    item: TaskFilterState[K][number]
-  ) {
-    const current = value[key] as unknown[];
-    const next = current.includes(item)
-      ? current.filter((i) => i !== item)
-      : [...current, item];
-    onChange({ ...value, [key]: next });
-  }
-
   const hasActiveFilters =
     value.modules.length > 0 ||
     value.priorities.length > 0 ||
@@ -97,62 +113,53 @@ export function TaskFilters({
   if (modules.length === 0 && users.length === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2.5 rounded-lg border border-text-muted/10 bg-surface-1 p-3">
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-2.5">
-        {modules.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-text-dim">Module</span>
-            {modules.map((m) => (
-              <Chip key={m} active={value.modules.includes(m)} onClick={() => toggle("modules", m)}>
-                {m}
-              </Chip>
-            ))}
-          </div>
-        )}
+    <div className="flex flex-wrap items-center gap-2">
+      {modules.length > 0 && (
+        <MultiSelectDropdown
+          label="Module"
+          options={modules}
+          optionLabel={(m) => m}
+          selected={value.modules}
+          onChange={(modules) => onChange({ ...value, modules })}
+        />
+      )}
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs text-text-dim">Priority</span>
-          {TASK_PRIORITIES.map((p) => (
-            <Chip key={p} active={value.priorities.includes(p)} onClick={() => toggle("priorities", p)}>
-              {p}
-            </Chip>
-          ))}
-        </div>
+      <MultiSelectDropdown
+        label="Priority"
+        options={[...TASK_PRIORITIES]}
+        optionLabel={(p) => p}
+        selected={value.priorities}
+        onChange={(priorities) => onChange({ ...value, priorities })}
+      />
 
-        {users.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-text-dim">Assignee</span>
-            {users.map((u) => (
-              <Chip
-                key={u.id}
-                active={value.assigneeIds.includes(u.id)}
-                onClick={() => toggle("assigneeIds", u.id)}
-              >
-                {u.name}
-              </Chip>
-            ))}
-          </div>
-        )}
+      {users.length > 0 && (
+        <MultiSelectDropdown
+          label="Assignee"
+          options={users.map((u) => u.id)}
+          optionLabel={(id) => users.find((u) => u.id === id)?.name ?? id}
+          selected={value.assigneeIds}
+          onChange={(assigneeIds) => onChange({ ...value, assigneeIds })}
+        />
+      )}
 
-        <label className="flex items-center gap-1.5 text-xs text-text-faint">
-          <Checkbox
-            checked={value.escalatedOnly}
-            onCheckedChange={(checked) => onChange({ ...value, escalatedOnly: checked === true })}
-          />
-          Escalated only
-        </label>
+      <label className="flex items-center gap-1.5 text-xs text-text-faint">
+        <Checkbox
+          checked={value.escalatedOnly}
+          onCheckedChange={(checked) => onChange({ ...value, escalatedOnly: checked === true })}
+        />
+        Escalated only
+      </label>
 
-        {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={() => onChange(EMPTY_TASK_FILTERS)}
-            className="flex items-center gap-1 text-xs text-brand-blue hover:underline"
-          >
-            <X className="h-3 w-3" />
-            Clear filters
-          </button>
-        )}
-      </div>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={() => onChange(EMPTY_TASK_FILTERS)}
+          className="flex items-center gap-1 text-xs text-brand-blue hover:underline"
+        >
+          <X className="h-3 w-3" />
+          Clear filters
+        </button>
+      )}
     </div>
   );
 }
