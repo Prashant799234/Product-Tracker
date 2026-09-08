@@ -13,6 +13,12 @@ import { EscalationsPanel } from "@/components/dashboard/escalations-panel";
 import { TaskListView } from "@/components/dashboard/task-list-view";
 import { TaskKanbanView } from "@/components/dashboard/task-kanban-view";
 import { NewTaskDialog } from "@/components/dashboard/new-task-dialog";
+import {
+  TaskFilters,
+  applyTaskFilters,
+  EMPTY_TASK_FILTERS,
+  type TaskFilterState,
+} from "@/components/dashboard/task-filters";
 import type { PublicUser, TaskListItem } from "@/types";
 import type { TaskStatus } from "@/lib/enums";
 
@@ -25,6 +31,7 @@ export function DashboardClient() {
   const [tasks, setTasks] = React.useState<TaskListItem[]>([]);
   const [users, setUsers] = React.useState<PublicUser[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [filters, setFilters] = React.useState<TaskFilterState>(EMPTY_TASK_FILTERS);
 
   const loadTasks = React.useCallback(async () => {
     setLoading(true);
@@ -40,7 +47,10 @@ export function DashboardClient() {
 
   React.useEffect(() => {
     loadTasks();
+    setFilters(EMPTY_TASK_FILTERS);
   }, [loadTasks]);
+
+  const filteredTasks = React.useMemo(() => applyTaskFilters(tasks, filters), [tasks, filters]);
 
   React.useEffect(() => {
     if (user && user.role !== "viewer") {
@@ -107,9 +117,16 @@ export function DashboardClient() {
 
       <StatTiles tasks={tasks} />
 
+      <TaskFilters tasks={tasks} users={users} value={filters} onChange={setFilters} />
+
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-text-faint">
-          {quarter} tasks {loading ? "· loading..." : `(${tasks.length})`}
+          {quarter} tasks{" "}
+          {loading
+            ? "· loading..."
+            : filteredTasks.length === tasks.length
+              ? `(${tasks.length})`
+              : `(${filteredTasks.length} of ${tasks.length})`}
         </h2>
         <Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
           <TabsList>
@@ -127,13 +144,13 @@ export function DashboardClient() {
 
       {view === "kanban" ? (
         <TaskKanbanView
-          tasks={tasks}
+          tasks={filteredTasks}
           currentUser={user}
           onDelete={handleDelete}
           onStatusChange={handleStatusChange}
         />
       ) : (
-        <TaskListView tasks={tasks} currentUser={user} onDelete={handleDelete} />
+        <TaskListView tasks={filteredTasks} currentUser={user} onDelete={handleDelete} />
       )}
     </div>
   );

@@ -21,6 +21,8 @@ import { PriorityBadge } from "@/components/tasks/priority-badge";
 import { ALL_STATUSES } from "@/components/tasks/status-badge";
 import { canDeleteTask } from "@/lib/task-rules";
 import { cn } from "@/lib/utils";
+import { isOverdue } from "@/lib/quarters";
+import { format } from "date-fns";
 import type { PublicUser, TaskListItem } from "@/types";
 import type { TaskStatus } from "@/lib/enums";
 
@@ -92,7 +94,7 @@ function KanbanColumn({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between px-1">
+      <div className="sticky top-14 z-20 -mx-1 flex items-center justify-between bg-surface px-1 py-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-text-faint">{status}</h3>
         <span className="text-xs text-text-dim">{count}</span>
       </div>
@@ -120,6 +122,7 @@ function KanbanCard({
 }) {
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const overdue = isOverdue(task.dueDate, task.status);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
@@ -164,8 +167,18 @@ function KanbanCard({
               )}
             </div>
           </div>
-          <div className="flex items-center justify-between">
+
+          <div className="flex flex-wrap items-center gap-1.5">
             <PriorityBadge priority={task.priority} />
+            <span className="rounded border border-text-muted/15 px-1.5 py-0.5 text-[11px] text-text-faint">
+              {task.module}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between text-xs">
+            <span className={cn(overdue ? "font-medium text-critical" : "text-text-dim")}>
+              {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "No due date"}
+            </span>
             {task.assignees.length > 0 ? (
               <div className="flex -space-x-1.5">
                 {task.assignees.map((assignee) => (
@@ -175,9 +188,10 @@ function KanbanCard({
                 ))}
               </div>
             ) : (
-              <span className="text-xs text-text-dim">Unassigned</span>
+              <span className="text-text-dim">Unassigned</span>
             )}
           </div>
+
           <Progress value={task.progressPct} />
         </CardContent>
       </Card>
