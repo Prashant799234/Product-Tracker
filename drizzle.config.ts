@@ -1,6 +1,7 @@
 import type { Config } from "drizzle-kit";
 import { config as loadEnv } from "dotenv";
 import { existsSync } from "node:fs";
+import { resolvePostgresUrl } from "./lib/db/resolve-connection-string";
 
 if (existsSync(".env.local")) {
   loadEnv({ path: ".env.local" });
@@ -8,11 +9,7 @@ if (existsSync(".env.local")) {
   loadEnv();
 }
 
-// Accept either naming: Vercel's older native Postgres integration injects
-// POSTGRES_URL, the current Neon marketplace integration injects DATABASE_URL.
-if (!process.env.POSTGRES_URL && process.env.DATABASE_URL) {
-  process.env.POSTGRES_URL = process.env.DATABASE_URL;
-}
+resolvePostgresUrl();
 
 if (!process.env.POSTGRES_URL) {
   // eslint-disable-next-line no-console
