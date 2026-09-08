@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ManageSharesDialog } from "@/components/users/manage-shares-dialog";
+import { ResetPasswordDialog } from "@/components/users/reset-password-dialog";
 import { USER_ROLES, type UserRole } from "@/lib/enums";
 import type { PublicUser } from "@/types";
 
@@ -95,6 +96,7 @@ export function UsersTable({
                     {user.role === "viewer" && <ManageSharesDialog user={user} />}
                     {editable && (
                       <>
+                        <ResetPasswordDialog user={user} />
                         <Button
                           variant="ghost"
                           size="sm"

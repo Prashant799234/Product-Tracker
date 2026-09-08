@@ -81,6 +81,10 @@ export default function LoginPage() {
           <p className="mt-4 text-center text-xs text-text-dim">
             No self-signup — ask Ankur, Prashant, or Harshit for access.
           </p>
+          <p className="mt-1 text-center text-xs text-text-dim">
+            Forgot your password? There&apos;s no automated email reset — ask any of them to
+            reset it for you from User Management.
+          </p>
         </CardContent>
       </Card>
     </div>
