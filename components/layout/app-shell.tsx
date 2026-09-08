@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users as UsersIcon, KeyRound, LogOut } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Users as UsersIcon, KeyRound, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api-client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,12 +16,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
 
   async function handleLogout() {
     await api.post("/api/auth/logout").catch(() => {});
@@ -31,43 +30,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <div className="min-h-screen bg-surface" />;
   }
 
-  const navItems = [
-    { href: "/", label: "Dashboard", icon: LayoutDashboard },
-    ...(user.canManageUsers
-      ? [{ href: "/users", label: "User Management", icon: UsersIcon }]
-      : []),
-  ];
-
   return (
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-40 border-b border-text-muted/10 bg-surface-1/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2 font-semibold text-text-primary">
-              <span className="h-2 w-2 rounded-full bg-brand-orange" />
-              Product Tracker
-            </Link>
-            <nav className="flex items-center gap-1">
-              {navItems.map((item) => {
-                const active = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-surface-3 text-text-primary"
-                        : "text-text-faint hover:bg-surface-2 hover:text-text-primary"
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-          </div>
+          <Link href="/" className="flex items-center rounded-md bg-white px-2.5 py-1.5">
+            <Image src="/polarin-logo.svg" alt="Polarin" width={104} height={24} priority />
+          </Link>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 rounded-md p-1 pr-2 transition-colors hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange">
@@ -85,6 +54,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Badge>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
+              {user.canManageUsers && (
+                <DropdownMenuItem onClick={() => router.push("/users")}>
+                  <UsersIcon className="mr-2 h-4 w-4" />
+                  User Management
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => router.push("/change-password")}>
                 <KeyRound className="mr-2 h-4 w-4" />
                 Change password

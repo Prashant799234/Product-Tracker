@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api, ApiError } from "@/lib/api-client";
 import { TASK_PRIORITIES, type TaskPriority } from "@/lib/enums";
@@ -78,18 +78,18 @@ export function NewTaskDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button>
           <Plus className="h-4 w-4" />
           New Task
         </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>New task</DialogTitle>
-          <DialogDescription>Added to {quarter}. You can edit everything later.</DialogDescription>
-        </DialogHeader>
+      </SheetTrigger>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>New task</SheetTitle>
+          <SheetDescription>Added to {quarter}. You can edit everything later.</SheetDescription>
+        </SheetHeader>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="title">Title</Label>
@@ -160,13 +160,13 @@ export function NewTaskDialog({
           {error && (
             <p className="rounded-md bg-critical/10 px-3 py-2 text-sm text-critical">{error}</p>
           )}
-          <DialogFooter>
+          <SheetFooter>
             <Button type="submit" disabled={submitting}>
               {submitting ? "Creating..." : "Create task"}
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
