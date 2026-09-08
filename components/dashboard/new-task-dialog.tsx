@@ -90,7 +90,7 @@ export function NewTaskDialog({
           <SheetTitle>New task</SheetTitle>
           <SheetDescription>Added to {quarter}. You can edit everything later.</SheetDescription>
         </SheetHeader>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="title">Title</Label>
             <Input id="title" required value={title} onChange={(e) => setTitle(e.target.value)} />

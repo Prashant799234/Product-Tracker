@@ -33,10 +33,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-surface">
       <header className="sticky top-0 z-40 border-b border-text-muted/10 bg-surface-1/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="relative mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link href="/" className="flex items-center">
             <Image src="/polarin-logo-white.png" alt="Polarin by Lightstorm" width={139} height={47} priority className="h-8 w-auto" />
           </Link>
+
+          <span className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-sm font-semibold uppercase tracking-wide text-text-faint">
+            Product Tracker
+          </span>
 
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-2 rounded-md p-1 pr-2 transition-colors hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange">
