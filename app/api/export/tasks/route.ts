@@ -126,7 +126,7 @@ export async function GET() {
   }
 
   if (other.length > 0) {
-    const sheet = workbook.addWorksheet("Unassigned / Other", {
+    const sheet = workbook.addWorksheet("Unassigned - Other", {
       views: [{ state: "frozen", ySplit: 1 }],
     });
     sheet.columns = COLUMNS;
