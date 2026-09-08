@@ -3,7 +3,7 @@ import { z } from "zod";
 import { and, eq, inArray } from "drizzle-orm";
 import { db, tasks, TASK_PRIORITIES, TASK_STATUSES } from "@/lib/db";
 import { getSessionUser, toPublicUser } from "@/lib/auth";
-import { getVisibilityScope } from "@/lib/permissions";
+import { getVisibilityScope, taskVisibleUnderScope } from "@/lib/permissions";
 import { logTaskEvent } from "@/lib/events";
 import { getCurrentQuarter } from "@/lib/quarters";
 import { resolveAssignees } from "@/lib/assignees";
@@ -64,7 +64,11 @@ export async function GET(request: Request) {
     escalator: r.escalator ? toPublicUser(r.escalator) : null,
   }));
 
-  const withAssignees = await resolveAssignees(sanitized);
+  // An unassigned task is private to its creator, regardless of role — the
+  // module-scope filter above doesn't know about that, so apply it here too.
+  const visible = sanitized.filter((t) => taskVisibleUnderScope(scope, t, user));
+
+  const withAssignees = await resolveAssignees(visible);
 
   return NextResponse.json({ tasks: withAssignees });
 }

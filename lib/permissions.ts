@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, shares, users, type Task, type User } from "./db";
+import { isPrivateToCreator } from "./task-rules";
 
 // Pure, DB-free rules (also used by client components) live in task-rules.ts
 // and are re-exported here so existing server-side imports keep working.
@@ -11,6 +12,7 @@ export {
   canDeleteTask,
   canRaiseEscalation,
   canResolveEscalation,
+  isPrivateToCreator,
 } from "./task-rules";
 
 /** Whether `actor` (who already has canManageUsers) may change the role or
@@ -52,7 +54,14 @@ export async function getVisibilityScope(
   return { kind: "modules", modules };
 }
 
-export function taskVisibleUnderScope(scope: VisibilityScope, task: Pick<Task, "module">): boolean {
+/** `user` is required here (not just for viewers) because an unassigned task
+ * is private to its creator regardless of role — see isPrivateToCreator. */
+export function taskVisibleUnderScope(
+  scope: VisibilityScope,
+  task: Pick<Task, "module" | "createdBy" | "assigneeIds">,
+  user: Pick<User, "id">
+): boolean {
+  if (isPrivateToCreator(user, task)) return false;
   if (scope.kind === "all") return true;
   if (scope.kind === "none") return false;
   return scope.modules.includes(task.module);
@@ -61,11 +70,10 @@ export function taskVisibleUnderScope(scope: VisibilityScope, task: Pick<Task, "
 /** Full check for a single task, used by the task-detail route. */
 export async function canViewTask(
   user: Pick<User, "id" | "role">,
-  task: Pick<Task, "module">
+  task: Pick<Task, "module" | "createdBy" | "assigneeIds">
 ): Promise<boolean> {
-  if (user.role !== "viewer") return true;
   const scope = await getVisibilityScope(user);
-  return taskVisibleUnderScope(scope, task);
+  return taskVisibleUnderScope(scope, task, user);
 }
 
 /** Guard against ever having zero active admins in the system. */

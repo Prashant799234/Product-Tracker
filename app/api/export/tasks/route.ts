@@ -94,7 +94,9 @@ export async function GET() {
 
   const allTasksWithAssignees = await resolveAssignees(allTasks);
 
-  const visibleTasks = allTasksWithAssignees.filter((task) => taskVisibleUnderScope(scope, task));
+  const visibleTasks = allTasksWithAssignees.filter((task) =>
+    taskVisibleUnderScope(scope, task, user)
+  );
 
   const workbook = new Workbook();
   workbook.creator = "Product Tracker";
