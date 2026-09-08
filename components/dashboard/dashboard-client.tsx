@@ -117,30 +117,32 @@ export function DashboardClient() {
 
       <StatTiles tasks={tasks} />
 
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-text-faint">
-          {quarter} tasks{" "}
-          {loading
-            ? "· loading..."
-            : filteredTasks.length === tasks.length
-              ? `(${tasks.length})`
-              : `(${filteredTasks.length} of ${tasks.length})`}
-        </h2>
-        <Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
-          <TabsList>
-            <TabsTrigger value="kanban" className="flex items-center gap-1.5">
-              <LayoutGrid className="h-4 w-4" />
-              Kanban
-            </TabsTrigger>
-            <TabsTrigger value="list" className="flex items-center gap-1.5">
-              <List className="h-4 w-4" />
-              List
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-text-faint">
+            {quarter} tasks{" "}
+            {loading
+              ? "· loading..."
+              : filteredTasks.length === tasks.length
+                ? `(${tasks.length})`
+                : `(${filteredTasks.length} of ${tasks.length})`}
+          </h2>
+          <Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
+            <TabsList>
+              <TabsTrigger value="kanban" className="flex items-center gap-1.5">
+                <LayoutGrid className="h-4 w-4" />
+                Kanban
+              </TabsTrigger>
+              <TabsTrigger value="list" className="flex items-center gap-1.5">
+                <List className="h-4 w-4" />
+                List
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-      <TaskFilters tasks={tasks} users={users} value={filters} onChange={setFilters} />
+        <TaskFilters tasks={tasks} users={users} value={filters} onChange={setFilters} />
+      </div>
 
       {view === "kanban" ? (
         <TaskKanbanView
