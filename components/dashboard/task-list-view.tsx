@@ -65,7 +65,7 @@ export function TaskListView({
                   >
                     {task.title}
                   </Link>
-                  {task.isEscalated && !task.escalationResolved && (
+                  {task.escalations.some((e) => !e.resolved) && (
                     <span className="ml-2 rounded-full bg-critical/15 px-2 py-0.5 text-[10px] font-semibold uppercase text-critical">
                       Escalated
                     </span>

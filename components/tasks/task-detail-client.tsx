@@ -142,21 +142,15 @@ export function TaskDetailContent({
       <EscalationSection
         task={task}
         canRaise={canEdit}
-        canResolve={user.role === "admin" || task.escalatedBy === user.id}
-        onRaise={async (note) => {
-          const data = await api.patch<{ task: TaskDetail }>(`/api/tasks/${taskId}/escalate`, {
-            action: "raise",
-            note,
-          });
-          setTask((prev) => (prev ? { ...prev, ...data.task } : prev));
+        currentUser={user}
+        users={users}
+        onRaise={async (note, taggedUserId) => {
+          await api.post(`/api/tasks/${taskId}/escalate`, { note, taggedUserId });
           onChanged?.();
           load();
         }}
-        onResolve={async () => {
-          const data = await api.patch<{ task: TaskDetail }>(`/api/tasks/${taskId}/escalate`, {
-            action: "resolve",
-          });
-          setTask((prev) => (prev ? { ...prev, ...data.task } : prev));
+        onResolve={async (escalationId) => {
+          await api.patch(`/api/tasks/${taskId}/escalate`, { escalationId });
           onChanged?.();
           load();
         }}

@@ -12,7 +12,7 @@
 import { config as loadEnv } from "dotenv";
 import { existsSync } from "node:fs";
 import { eq } from "drizzle-orm";
-import { db, users, tasks, taskTodos, taskComments, taskLinks } from "./index";
+import { db, users, tasks, taskTodos, taskComments, taskLinks, taskEscalations } from "./index";
 import { hashPassword } from "../auth";
 import { getInitials, randomPassword } from "../utils";
 import { getCurrentQuarter, shiftQuarter } from "../quarters";
@@ -92,12 +92,14 @@ async function seedSampleTasks(userIds: Record<string, string>) {
       createdBy: prashant,
       source: "Finance team request in #ops-finance",
       valueAdd: "Removes a manual monthly reconciliation step for finance.",
-      isEscalated: true,
-      escalationNote: "Blocked on VPC peering approval from infra.",
-      escalatedBy: harshit,
-      escalatedAt: new Date(),
     })
     .returning();
+
+  await db.insert(taskEscalations).values({
+    taskId: escalatedTask.id,
+    raisedBy: harshit,
+    note: "Blocked on VPC peering approval from infra.",
+  });
 
   await db.insert(taskTodos).values([
     { taskId: escalatedTask.id, text: "Confirm export schema with finance", isDone: true, createdBy: prashant, completedAt: new Date() },

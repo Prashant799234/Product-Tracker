@@ -39,7 +39,7 @@ export function applyTaskFilters(tasks: TaskListItem[], filters: TaskFilterState
     ) {
       return false;
     }
-    if (filters.escalatedOnly && !(task.isEscalated && !task.escalationResolved)) return false;
+    if (filters.escalatedOnly && !task.escalations.some((e) => !e.resolved)) return false;
     return true;
   });
 }

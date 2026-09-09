@@ -7,6 +7,7 @@ import { getVisibilityScope, taskVisibleUnderScope } from "@/lib/permissions";
 import { logTaskEvent } from "@/lib/events";
 import { getCurrentQuarter } from "@/lib/quarters";
 import { resolveAssignees } from "@/lib/assignees";
+import { sanitizeEscalation } from "@/lib/escalations";
 
 export const dynamic = "force-dynamic";
 
@@ -50,18 +51,19 @@ export async function GET(request: Request) {
     where: and(...conditions),
     with: {
       creator: true,
-      escalator: true,
+      escalations: { with: { raiser: true, taggedUser: true, resolver: true } },
     },
     orderBy: (t, { desc }) => [desc(t.createdAt)],
   });
 
-  // Drizzle's relational query returns the FULL user row for `creator`/
-  // `escalator` (including passwordHash, tokenVersion) — never let that reach
-  // the client. Reduce to the same safe subset used everywhere else.
+  // Drizzle's relational query returns the FULL user row for `creator` and
+  // for each escalation's `raiser`/`taggedUser`/`resolver` (including
+  // passwordHash, tokenVersion) — never let that reach the client. Reduce to
+  // the same safe subset used everywhere else.
   const sanitized = rows.map((r) => ({
     ...r,
     creator: r.creator ? toPublicUser(r.creator) : null,
-    escalator: r.escalator ? toPublicUser(r.escalator) : null,
+    escalations: r.escalations.map(sanitizeEscalation),
   }));
 
   // An unassigned task is private to its creator, regardless of role — the

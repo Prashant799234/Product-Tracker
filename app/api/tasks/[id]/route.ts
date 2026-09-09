@@ -6,6 +6,7 @@ import { getSessionUser, toPublicUser } from "@/lib/auth";
 import { canDeleteTask, canEditTask, canViewTask } from "@/lib/permissions";
 import { logTaskEvent } from "@/lib/events";
 import { resolveAssignees } from "@/lib/assignees";
+import { sanitizeEscalation } from "@/lib/escalations";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,10 @@ async function loadTaskDetail(taskId: string) {
     where: eq(tasks.id, taskId),
     with: {
       creator: true,
-      escalator: true,
+      escalations: {
+        orderBy: (e, { desc }) => [desc(e.createdAt)],
+        with: { raiser: true, taggedUser: true, resolver: true },
+      },
       links: { orderBy: (l, { desc }) => [desc(l.createdAt)] },
       documents: { orderBy: (d, { desc }) => [desc(d.createdAt)] },
       todos: { orderBy: (t, { asc }) => [asc(t.createdAt)] },
@@ -53,12 +57,13 @@ async function loadTaskDetail(taskId: string) {
   if (!task) return task;
 
   // Drizzle's relational query returns FULL user rows (including
-  // passwordHash, tokenVersion) for creator/escalator and every comment
-  // author / event actor — never let that reach the client.
+  // passwordHash, tokenVersion) for creator, each escalation's
+  // raiser/taggedUser/resolver, and every comment author / event actor —
+  // never let that reach the client.
   const sanitized = {
     ...task,
     creator: task.creator ? toPublicUser(task.creator) : null,
-    escalator: task.escalator ? toPublicUser(task.escalator) : null,
+    escalations: task.escalations.map(sanitizeEscalation),
     comments: task.comments.map((c) => ({
       ...c,
       author: c.author ? toPublicUser(c.author) : null,

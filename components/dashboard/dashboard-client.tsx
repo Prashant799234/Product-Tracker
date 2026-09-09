@@ -68,8 +68,8 @@ export function DashboardClient() {
     }
   }, [user]);
 
-  async function handleResolve(taskId: string) {
-    await api.patch(`/api/tasks/${taskId}/escalate`, { action: "resolve" });
+  async function handleResolve(taskId: string, escalationId: string) {
+    await api.patch(`/api/tasks/${taskId}/escalate`, { escalationId });
     loadTasks();
   }
 

@@ -26,7 +26,9 @@ function describeEvent(event: EventWithActor): string {
     case "progress_changed":
       return `updated progress from ${detail.from}% to ${detail.to}%`;
     case "escalated":
-      return `raised an escalation${detail.note ? `: "${detail.note}"` : ""}`;
+      return `raised an escalation${detail.note ? `: "${detail.note}"` : ""}${
+        detail.taggedUserName ? ` (tagged ${detail.taggedUserName})` : ""
+      }`;
     case "escalation_resolved":
       return `resolved the escalation`;
     case "comment_added":

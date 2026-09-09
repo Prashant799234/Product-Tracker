@@ -5,6 +5,7 @@ import { db, tasks } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { getVisibilityScope, taskVisibleUnderScope } from "@/lib/permissions";
 import { resolveAssignees } from "@/lib/assignees";
+import { sanitizeEscalation } from "@/lib/escalations";
 import type { TaskListItem } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,21 @@ function formatDateTime(value: unknown): string {
   return format(date, "MMM d, yyyy h:mm a");
 }
 
+function escalationSummary(task: TaskListItem) {
+  const escalations = task.escalations ?? [];
+  const open = escalations.filter((e) => !e.resolved);
+  return {
+    escalated: open.length > 0 ? "Yes" : "No",
+    escalationNote: open.map((e) => e.note).join(" | "),
+    escalationRaisedBy: open.map((e) => e.raiser?.name ?? "Unknown").join(", "),
+    // "Resolved" only makes sense once at least one escalation has ever been
+    // raised; a task with none is neither escalated nor resolved.
+    escalationResolved: escalations.length > 0 && open.length === 0 ? "Yes" : "No",
+  };
+}
+
 function taskRow(task: TaskListItem) {
+  const escalation = escalationSummary(task);
   return {
     title: task.title,
     quarter: task.quarter,
@@ -64,10 +79,10 @@ function taskRow(task: TaskListItem) {
     jiraUrl: task.jiraUrl ?? "",
     confluenceUrl: task.confluenceUrl ?? "",
     figmaUrl: task.figmaUrl ?? "",
-    escalated: task.isEscalated ? "Yes" : "No",
-    escalationNote: task.escalationNote ?? "",
-    escalationRaisedBy: task.escalator?.name ?? "",
-    escalationResolved: task.escalationResolved ? "Yes" : "No",
+    escalated: escalation.escalated,
+    escalationNote: escalation.escalationNote,
+    escalationRaisedBy: escalation.escalationRaisedBy,
+    escalationResolved: escalation.escalationResolved,
     createdAt: formatDateTime(task.createdAt),
     updatedAt: formatDateTime(task.updatedAt),
   };
@@ -88,11 +103,22 @@ export async function GET() {
     scope.kind === "none"
       ? []
       : await db.query.tasks.findMany({
-          with: { creator: true, escalator: true },
+          with: {
+            creator: true,
+            escalations: { with: { raiser: true, taggedUser: true, resolver: true } },
+          },
           orderBy: (t, { desc }) => [desc(t.createdAt)],
         });
 
-  const allTasksWithAssignees = await resolveAssignees(allTasks);
+  // Same passwordHash/tokenVersion leak risk as the other routes if these
+  // full user rows were ever serialized directly — sanitize before use, even
+  // though today only `.name` is read off of them for the Excel cells.
+  const sanitizedTasks = allTasks.map((t) => ({
+    ...t,
+    escalations: t.escalations.map(sanitizeEscalation),
+  }));
+
+  const allTasksWithAssignees = await resolveAssignees(sanitizedTasks);
 
   const visibleTasks = allTasksWithAssignees.filter((task) =>
     taskVisibleUnderScope(scope, task, user)

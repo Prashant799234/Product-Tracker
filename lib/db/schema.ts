@@ -102,6 +102,11 @@ export const tasks = pgTable("tasks", {
   confluenceUrl: text("confluence_url"),
   figmaUrl: text("figma_url"),
   dependencyId: uuid("dependency_id").references((): any => tasks.id),
+  // Deprecated: superseded by the one-to-many `task_escalations` table below
+  // (a task can now have multiple escalations, open or resolved, each
+  // optionally tagging a specific person). Left physically in place and
+  // unused going forward — same pattern as `assignedTo`/`severity` above. Do
+  // not read or write these columns from application code anymore.
   isEscalated: boolean("is_escalated").notNull().default(false),
   escalationNote: text("escalation_note"),
   escalatedBy: uuid("escalated_by").references((): any => users.id),
@@ -165,6 +170,24 @@ export const taskTodos = pgTable("task_todos", {
   completedAt: timestamp("completed_at", { withTimezone: true }),
 });
 
+export const taskEscalations = pgTable("task_escalations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  taskId: uuid("task_id")
+    .references(() => tasks.id, { onDelete: "cascade" })
+    .notNull(),
+  raisedBy: uuid("raised_by")
+    .references(() => users.id)
+    .notNull(),
+  note: text("note").notNull(),
+  taggedUserId: uuid("tagged_user_id").references(() => users.id),
+  resolved: boolean("resolved").notNull().default(false),
+  resolvedBy: uuid("resolved_by").references(() => users.id),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const taskComments = pgTable("task_comments", {
   id: uuid("id").primaryKey().defaultRandom(),
   taskId: uuid("task_id")
@@ -216,6 +239,9 @@ export const shares = pgTable("shares", {
 export const usersRelations = relations(users, ({ many }) => ({
   assignedTasks: many(tasks, { relationName: "assignee" }),
   createdTasks: many(tasks, { relationName: "creator" }),
+  // Deprecated along with `tasks.escalatedBy` above — superseded by
+  // `task_escalations` (see taskEscalationsRelations' `raiser`/`taggedUser`/
+  // `resolver`). Left in place, unused going forward.
   escalatedTasks: many(tasks, { relationName: "escalator" }),
   shares: many(shares, { relationName: "shareUser" }),
 }));
@@ -231,6 +257,8 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
     references: [users.id],
     relationName: "creator",
   }),
+  // Deprecated: superseded by `escalations` (task_escalations) below. Left in
+  // place, unused going forward.
   escalator: one(users, {
     fields: [tasks.escalatedBy],
     references: [users.id],
@@ -245,6 +273,26 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
   todos: many(taskTodos),
   comments: many(taskComments),
   events: many(taskEvents),
+  escalations: many(taskEscalations),
+}));
+
+export const taskEscalationsRelations = relations(taskEscalations, ({ one }) => ({
+  task: one(tasks, { fields: [taskEscalations.taskId], references: [tasks.id] }),
+  raiser: one(users, {
+    fields: [taskEscalations.raisedBy],
+    references: [users.id],
+    relationName: "escalationRaiser",
+  }),
+  taggedUser: one(users, {
+    fields: [taskEscalations.taggedUserId],
+    references: [users.id],
+    relationName: "escalationTagged",
+  }),
+  resolver: one(users, {
+    fields: [taskEscalations.resolvedBy],
+    references: [users.id],
+    relationName: "escalationResolver",
+  }),
 }));
 
 export const taskLinksRelations = relations(taskLinks, ({ one }) => ({
@@ -293,4 +341,5 @@ export type TaskDocument = typeof taskDocuments.$inferSelect;
 export type TaskTodo = typeof taskTodos.$inferSelect;
 export type TaskComment = typeof taskComments.$inferSelect;
 export type TaskEvent = typeof taskEvents.$inferSelect;
+export type TaskEscalation = typeof taskEscalations.$inferSelect;
 export type Share = typeof shares.$inferSelect;

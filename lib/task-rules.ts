@@ -1,4 +1,4 @@
-import type { Task, User } from "./db/schema";
+import type { Task, TaskEscalation, User } from "./db/schema";
 
 /**
  * Pure, DB-free permission rules — importable from client components as well
@@ -71,8 +71,8 @@ export function canRaiseEscalation(
  * one they raised themselves. */
 export function canResolveEscalation(
   user: Pick<User, "id" | "role">,
-  task: Pick<Task, "escalatedBy">
+  escalation: Pick<TaskEscalation, "raisedBy">
 ): boolean {
   if (user.role === "admin") return true;
-  return !!task.escalatedBy && task.escalatedBy === user.id;
+  return escalation.raisedBy === user.id;
 }

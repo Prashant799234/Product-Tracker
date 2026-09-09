@@ -147,7 +147,7 @@ function KanbanCard({
           <div className="flex items-start justify-between gap-2">
             <span className="text-sm font-medium text-text-primary">{task.title}</span>
             <div className="flex shrink-0 items-center gap-1">
-              {task.isEscalated && !task.escalationResolved && (
+              {task.escalations.some((e) => !e.resolved) && (
                 <span className="h-2 w-2 rounded-full bg-critical" title="Escalated" />
               )}
               {deletable && (

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { TaskListItem } from "@/types";
-import type { PublicUser } from "@/types";
+import { canResolveEscalation } from "@/lib/task-rules";
+import type { PublicUser, TaskListItem } from "@/types";
 
 export function EscalationsPanel({
   tasks,
@@ -14,10 +14,23 @@ export function EscalationsPanel({
 }: {
   tasks: TaskListItem[];
   currentUser: PublicUser;
-  onResolve: (taskId: string) => void;
+  onResolve: (taskId: string, escalationId: string) => void;
 }) {
-  const escalated = tasks.filter((t) => t.isEscalated && !t.escalationResolved);
-  if (escalated.length === 0) return null;
+  // One row per open escalation — a task with two open escalations shows up
+  // twice — newest first.
+  const rows = tasks
+    .flatMap((task) =>
+      task.escalations
+        .filter((e) => !e.resolved)
+        .map((escalation) => ({ task, escalation }))
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.escalation.createdAt).getTime() -
+        new Date(a.escalation.createdAt).getTime()
+    );
+
+  if (rows.length === 0) return null;
 
   return (
     <Card className="border-critical/40 bg-critical/5">
@@ -25,16 +38,15 @@ export function EscalationsPanel({
         <div className="flex items-center gap-2 text-critical">
           <AlertTriangle className="h-4 w-4" />
           <h2 className="text-sm font-semibold uppercase tracking-wide">
-            Escalations ({escalated.length})
+            Escalations ({rows.length})
           </h2>
         </div>
         <div className="flex flex-col gap-2">
-          {escalated.map((task) => {
-            const canResolve =
-              currentUser.role === "admin" || task.escalatedBy === currentUser.id;
+          {rows.map(({ task, escalation }) => {
+            const canResolve = canResolveEscalation(currentUser, escalation);
             return (
               <div
-                key={task.id}
+                key={escalation.id}
                 className="flex flex-col gap-2 rounded-md border border-critical/20 bg-surface-1 p-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex flex-col gap-0.5">
@@ -49,12 +61,17 @@ export function EscalationsPanel({
                     {task.assignees.length > 0
                       ? task.assignees.map((a) => a.name).join(", ")
                       : "Unassigned"}{" "}
-                    · raised by {task.escalator?.name ?? "Unknown"}
-                    {task.escalationNote ? ` — "${task.escalationNote}"` : ""}
+                    · raised by {escalation.raiser?.name ?? "Unknown"}
+                    {escalation.note ? ` — "${escalation.note}"` : ""}
+                    {escalation.taggedUser ? ` → tagged ${escalation.taggedUser.name}` : ""}
                   </p>
                 </div>
                 {canResolve && (
-                  <Button size="sm" variant="destructive" onClick={() => onResolve(task.id)}>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onResolve(task.id, escalation.id)}
+                  >
                     Resolve
                   </Button>
                 )}
